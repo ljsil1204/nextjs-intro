@@ -1,5 +1,7 @@
-import { Inter } from "next/font/google";
-
 export default function Home() {
-  return <>hi</>;
+  return (
+    <div>
+      <h1>hellow</h1>
+    </div>
+  );
 }
