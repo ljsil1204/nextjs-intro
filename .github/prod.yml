@@ -1,0 +1,60 @@
+# workflow 이름. => 브런치 이름으로
+name : 'prod'
+
+# workflow를 동작시키는 trigger
+# push 이벤트 발생때마다 실행
+on : push
+
+#job 
+#사용자가 정한 플랫폼을 통해 step 과정 실행 
+# 여러개 job 사용 및 정보교환 가능. 각 독립적 실행 가능
+jobs : 
+	test :
+		#job 이름
+		name : Test lint, tsc, build
+		# 리눅스 환경에서 실행
+		runs-on : ubuntu-latest
+		
+		# shell script 실행 / 만들어놓은 Action 사용
+		steps: 
+			# github action은 해당 프로젝트를 리눅스 환경에 checkout 하고 나서 실행
+			# 만들어 놓은 Action 사용 시 uses 키워드 사용
+			- uses : actions/checkout@v2 
+
+			# Node.js 에서 실행을 명시
+			- name : Use Node.js
+				uses: actions/setup-node@v2
+				# with : Action 값 전달
+				# node-version이라는 키워드로 값을 전달함.
+				# Settings/secrets 에 만든 시크릿 정보 => ${{secrets.XXX}} 값을 가져올수 있음.
+				with : 
+					node-version : ${{secrets.NODE_VERSION}}
+
+			# ::node_modules의 변화를 체크해 npm install을 해주기 위한 작업
+			# 1) cache 검사
+			- name : Cache node modules
+				uses : actions/cache@v2 #cache를 체크해주는 Action이 있으므로 가져다가 사용
+				id : cache # step 대표하는 id 설정가능
+				with : 
+					path : node_modules #캐시 체크할 경로 작성 => node_modules 
+					key : npm-packages-${{hashFiles('**/package-lock.json')}}
+					# key 설정 => 설정한 키값으로 cache 돼어 있는지 확인함.
+			
+			# 2) 위의 step의 cache 검사 결과 변화 있을 시 분기 처리
+			# => 변화 있으면 'npm install' / 변화 없으면 해당 step 건너띔
+			- name : Install Dependencies
+				# if : 해당 스템 조건 키워드
+				# steps.cache.outputs.cache-hit => steps.설정한id.outputs.cache-hit
+				# 캐시가 hit 됐는지 안됐는지 알수 있는 키워드
+				if : steps.cache.outputs.cache-hit != 'true'
+				run : npm install # 위 조건이에 만족 시 npm install
+
+			# ::lint, tsc, build 를 테스트 하는 것
+			# run : 'npm run' 같은 커맨드 명령어를 입력할 수 있게 하는 키워드
+			# package.json 에 해당 명령어가 있어야 한다.
+			- run : npm run lint
+				# ${{always()}}: 'npm run lint'에서 에러가 발생해도 workflow를 끝내지 않고 모든 커맨드 실행을 다 한 후 종료 하도록 한다.
+				if : ${{always()}}
+
+			- run : npm run build
+				if : ${{always()}}
