@@ -25,6 +25,7 @@ export default function Home({ results }) {
           onClick={() => onClick(movie.id, movie.original_title)}
         >
           <img src={`https://image.tmdb.org/t/p/w500/${movie.poster_path}`} />
+          hi
           <h4>
             <Link
               href={{
