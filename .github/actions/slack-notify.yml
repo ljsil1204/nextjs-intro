@@ -1,0 +1,34 @@
+name: "slack-notify"
+
+# 'actions/setup-node@v2' 사용 시  with 로 node-version 넘길 때 받는 값들 명시
+# job  실패 or 성공 값 / 슬랙 알림 보낼 값
+inputs:
+  status: # 받을 키
+    # 필수 값 및 기본값을 설정 할 수 있음.
+    required: false
+    default: "failure"
+  slack_incoming_url:
+    required: true
+
+# using : 'composite' 값을 필수로 지정 => 직접 Action 만든다는 의미
+runs:
+  using: "composite"
+
+  step:
+    - name: Send slack
+      # shell script 사용 시 값을 명시
+      shell: bash
+      # run : |를 붙여서 스크립트를 여러 줄로 사용 할 수 있다.
+      # 전달 받은 status 값을 이용해 성공 실패 판단 및 이모티콘 지정
+      run: |
+        if["${{inputs.status}}" = "success"]; then
+          EMOTICON="✅"
+        else
+          EMOTICON="⛔"
+        fi
+
+        # GITHUB_REPOSITORY, GITHUB_WORKFLOW ... => GitHub Actions에서 제공하는 환경변수
+        # 슬랙알림이 왔을 때 어느부분이 실패했는지 클릭해서 페이지 띄우기
+        MSG="{ \"text\":\">${EMOTICON} workflow (<https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|${GITHUB_WORKFLOW}>) in <https://github.com/${GITHUB_REPOSITORY}|${GITHUB_REPOSITORY}>\n><https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}/checks|${GITHUB_JOB}> job ${{ inputs.status }}, branch=\`${GITHUB_REF#refs/heads/}\`\"}"
+
+        curl -X POST -H 'Content-type : application/json' --data "${MSG}" "${{inputs.slack_incoming_url}}"

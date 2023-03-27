@@ -58,3 +58,19 @@ jobs :
 
 			- run : npm run build
 				if : ${{always()}}
+
+			
+			# 만든 action 연결하기
+			- name : Send slack when failed
+				if: ${{failure()}} # 실패 시
+				uses : ./github/actions/slack-notify # uses 키워드로 action 연결
+				with : 
+					slack_incoming_url : ${{secrets.SLACK_INCOMING_URL}} # 슬랙 url secrets에 만들어서 접근하고 값 넘기기
+			
+			- name : Send slack if completed
+				if : ${{success()}} # 성공 시
+				uses : ./github/actions/slack-notify # uses 키워드로 action 연결
+				with : 
+					# success 일 때 값 넘기기
+					status : success
+					slack_incoming_url : ${{secrets.SLACK_INCOMING_URL}}
